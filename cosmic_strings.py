@@ -14,7 +14,8 @@ from PIL import Image
 def vos(y, t, la , ff , fff , k , logscale=0 , c=0 , g=1 , rho=0.5):
 	l,v,j,q,xi = y
 	w = xi/l
-	
+	#w = np.sqrt(1-2*q*ff)
+
 	if logscale == 0:
 		h = la/t
 
@@ -22,14 +23,14 @@ def vos(y, t, la , ff , fff , k , logscale=0 , c=0 , g=1 , rho=0.5):
 		dv = ((1-v**2)*(k/xi*(1+2*((q+j)/w**2)*ff) - 2*v*h*(1+((q+j)/w**2)*ff)))
 		dj = (2*j*(v*k/xi-h)) + rho*c*v/l*(g-1)*w/(ff-2*q*fff)
 		dq = (2*q*(v*k/xi-h)*(ff+2*j*fff)/(ff+2*q*fff)) + (1-rho)*c*v/l*(g-1)*w/(ff+2*q*fff)
-		dxi = (h*xi*v**2*(1+((q+j)/w**2)*ff) - v*k*((q+j)/w**2)*ff) + c/(2*w)*v
+		dxi = (h*xi*v**2*(1+((q+j)/w**2)*ff) - v*k*((q+j)/w**2)*ff) + c/(2)*v
 	
 	else:
 		dl = (la*l*(v**2-(1-v**2)*((q+j)/w**2)*ff)) + np.exp(t)*g*c/(2*w)*v
 		dv = ((1-v**2)*(np.exp(t)*k/xi*(1+2*((q+j)/w**2)*ff) - 2*v*la*(1+((q+j)/w**2)*ff)))
 		dj = (2*j*(np.exp(t)*v*k/xi-la)) * np.exp(t)*rho*c*v/l*(g-1)*w/(ff-2*q*fff)
 		dq = (2*q*(np.exp(t)*v*k/xi-la)*(ff+2*j*fff)/(ff+2*q*fff)) * np.exp(t)*(1-rho)*c*v/l*(g-1)*w/(ff+2*q*fff)
-		dxi = (la*xi*v**2*(1+((q+j)/w**2)*ff) - np.exp(t)*(v*k*((q+j)/w**2)*ff) + c/(2*w)*v)   
+		dxi = (la*xi*v**2*(1+((q+j)/w**2)*ff) - np.exp(t)*(v*k*((q+j)/w**2)*ff) + c/(2)*v)   
 	
 	dydt = [dl , dv , dj , dq , dxi]
 	
@@ -51,13 +52,16 @@ st.markdown("""
 # -- Side bar definition
 tab1, tab2, tab3 = st.sidebar.tabs([":milky_way: Properties", "📈 Simulations" , ":art: Visualisation"])
 
-t_max = tab1.number_input('Simulation time',min_value=0.0,max_value=None,value=1000.0)
+col1, col2 = tab1.columns(2)
+
+t0 = col1.number_input('Initial simulation time',min_value=1.0,max_value=None,value=1.0)
+t_max = col2.number_input('Final simulation time',min_value=0.0,max_value=None,value=1000.0)
+
 fs = tab1.number_input('Sampling rate',min_value=1.0,max_value=None,value=100.0)
 
-zoom_lim = tab3.slider('Plot time limits',min_value=1.0,max_value=t_max,value=[1.0,t_max])
+zoom_lim = tab3.slider('Plot time limits',min_value=t0,max_value=t_max,value=[t0,t_max])
 x_log_scale = tab3.checkbox('Time in log scale',value=True)
 y_log_scale = tab3.checkbox('Quantities in log scale',value=True)
-
 
 k = tab1.number_input('Momentum parameter ($k_v$)',min_value=0.0,max_value=1.0,value=0.1)
 ff = tab1.number_input('$F^\prime$',value=-0.1)
@@ -96,7 +100,7 @@ for i in range(N):
 
 		form.form_submit_button("Update parameters")
 
-t = np.arange(1,t_max+1/fs,1/fs)
+t = np.arange(t0,t_max+1/fs,1/fs)
 time_filter = (t>=zoom_lim[0]) & (t<=zoom_lim[1])
 
 @st.cache_data
@@ -130,7 +134,6 @@ for i in range(N):
 		+r'       $c=$%.1f; $g=$%.1f; $\rho=$%.1f'%(c[i],g[i],rho[i])
 		)
 	
-
 if x_log_scale:
 	axj.set_xscale('log')
 	axq.set_xscale('log')
